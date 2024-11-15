@@ -1,0 +1,6 @@
+/Users/jwashin2/Documents/Projects/VTK/VTK_Contour/build/Qt_6_8_0_for_macOS-Debug/CMakeFiles/VTK_Contour_lib.dir
+/Users/jwashin2/Documents/Projects/VTK/VTK_Contour/build/Qt_6_8_0_for_macOS-Debug/CMakeFiles/edit_cache.dir
+/Users/jwashin2/Documents/Projects/VTK/VTK_Contour/build/Qt_6_8_0_for_macOS-Debug/CMakeFiles/rebuild_cache.dir
+/Users/jwashin2/Documents/Projects/VTK/VTK_Contour/build/Qt_6_8_0_for_macOS-Debug/test/CMakeFiles/VTK_Contour_test.dir
+/Users/jwashin2/Documents/Projects/VTK/VTK_Contour/build/Qt_6_8_0_for_macOS-Debug/test/CMakeFiles/edit_cache.dir
+/Users/jwashin2/Documents/Projects/VTK/VTK_Contour/build/Qt_6_8_0_for_macOS-Debug/test/CMakeFiles/rebuild_cache.dir
