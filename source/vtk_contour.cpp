@@ -55,12 +55,12 @@ void set_variable_name(Configuration* c, const char* name) {
 
 void set_variable_value(Configuration* c, double value) {
     if (!c) return;
-    c->input_filename = value;
+    c->variable_value = value;
 }
 
 void set_max_refinement_level(Configuration* c, unsigned level) {
     if (!c) return;
-    c->input_filename = level;
+    c->max_refinements = level;
 }
 
 
