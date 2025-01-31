@@ -26,7 +26,7 @@
 #include <vtkPolyDataWriter.h>
 
 
-extern "C" {
+// extern "C" {
 
 struct Configuration {
     std::string input_filename;
@@ -346,4 +346,4 @@ void dump_to_obj(Result* res, const char* file) {
     }
     ofile.close();
 }
-}
+// }

@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 
-extern "C" {
+// extern "C" {
 
 struct Configuration;
 
@@ -28,4 +28,4 @@ size_t get_polys_bytesize(Result*);
 size_t get_verts_bytesize(Result*);
 
 void dump_to_obj(Result*, const char* file);
-}
+// }
