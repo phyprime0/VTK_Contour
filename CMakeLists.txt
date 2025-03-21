@@ -12,6 +12,7 @@ list(APPEND CMAKE_PREFIX_PATH "/opt/homebrew/")
 find_package(VTK REQUIRED
     COMPONENTS
         CommonCore
+        CommonColor
         CommonDataModel
         FiltersExtraction
         FiltersGeometry
@@ -34,7 +35,7 @@ endif()
 # ---- Declare library ----
 
 add_library(
-    VTK_Contour_lib
+    VTK_Contour_lib STATIC
     source/vtk_contour.cpp
     include/vtk_contour.h
 )

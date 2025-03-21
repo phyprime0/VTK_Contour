@@ -17,11 +17,17 @@
 #include <vtkUnstructuredGrid.h>
 
 #include <vtkDoubleArray.h>
+#include <vtkColorSeries.h>
+#include <vtkImageData.h>
+#include <vtkTexture.h>
+#include <vtkDataArray.h>
 
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
 #include <vtkContourFilter.h>
 #include <vtkPointData.h>
+
+#include <vtkProbeFilter.h>
 
 #include <vtkPolyDataWriter.h>
 
@@ -31,6 +37,7 @@
 struct Configuration {
     std::string input_filename;
     std::string variable_name;
+    std::string texture_variable;
     double      variable_value;
     unsigned    max_refinements;
 };
@@ -58,6 +65,11 @@ void set_variable_value(Configuration* c, double value) {
     c->variable_value = value;
 }
 
+void set_texture_variable(Configuration* c, const char* tname) {
+    if (!c) return;
+    c->texture_variable = tname;
+}
+
 void set_max_refinement_level(Configuration* c, unsigned level) {
     if (!c) return;
     c->max_refinements = level;
@@ -69,10 +81,15 @@ void set_max_refinement_level(Configuration* c, unsigned level) {
 struct Result {
     int num_verts = 0;
     int num_polys = 0;
+    //Basic colormap size, can be adjusted if needed.
+    int texture_size = 256;
+
 
     std::vector<std::array<float, 3>>    vert_data;
     std::vector<std::array<float, 3>>    norm_data;
     std::vector<std::array<uint32_t, 3>> poly_data;
+    std::vector<std::array<uint8_t, 3>>  texture_data;
+    std::vector<float>                   texcoord_data;
 };
 
 Result* init_result(Configuration* configuration) {
@@ -82,6 +99,8 @@ Result* init_result(Configuration* configuration) {
     const std::string var_name    = configuration->variable_name;
     const int         fine_level  = configuration->max_refinements;
     const double      var_value   = configuration->variable_value;
+    const std::string tex_var     = configuration->texture_variable;
+
 
     auto reader = vtkSmartPointer<vtkAMReXGridReader>::New();
 
@@ -90,6 +109,8 @@ Result* init_result(Configuration* configuration) {
     reader->Update(); // Without this, apparently it has no idea what arrays
                       // exist?? Does not match docs
     reader->SetCellArrayStatus(var_name.c_str(), 1);
+    // Retrieve the texture variable by name and set ArrayStatus to True
+    reader->SetCellArrayStatus(tex_var.c_str(), 1);
     reader->UpdateInformation();
     reader->Update();
 
@@ -108,6 +129,7 @@ Result* init_result(Configuration* configuration) {
     auto amr_cell_data = amr_dataset->GetCellData();
 
     assert(amr_cell_data->GetArray(var_name.c_str()));
+    assert(amr_cell_data->GetArray(tex_var.c_str()));
 
     auto appendFilter = vtkSmartPointer<vtkAppendFilter>::New();
 
@@ -138,6 +160,11 @@ Result* init_result(Configuration* configuration) {
 
     std::cout << std::endl;
 
+    double txrange[2];
+    // auto txdata = vtkSmartPointer<vtkDataArray>::New();
+
+    vtkSmartPointer<vtkDataArray> txdata;
+
     {
         auto pdata = c2p_result->GetPointData();
         assert(pdata->HasArray(var_name.c_str()));
@@ -147,7 +174,85 @@ Result* init_result(Configuration* configuration) {
         mvdata->GetRange(range);
         std::cout << var_name << " range: " << range[0] << " - " << range[1]
                   << std::endl;
+
+        assert(pdata->HasArray(tex_var.c_str()));
+        // auto txdata = pdata->GetArray(tex_var.c_str());
+        txdata = pdata->GetArray(tex_var.c_str());
+        assert(txdata);
+
+        txdata->GetRange(txrange);
+        std::cout << tex_var << " range: " << txrange[0] << " - " << txrange[1]
+                  << std::endl;
     }
+
+
+    // Generate Colormap (Might be smarter to restructure this... but for now...
+
+    vtkSmartPointer<vtkColorSeries> colorSeries = vtkSmartPointer<vtkColorSeries>::New();
+    //Can switch color schemes
+    colorSeries->SetColorScheme(vtkColorSeries::BREWER_DIVERGING_PURPLE_ORANGE_11);
+
+    int num_colors = colorSeries->GetNumberOfColors();
+
+    int tx_size = result_data->texture_size;
+
+    std::vector<std::array<uint8_t, 3>> c_texture(tx_size);
+
+
+    // Interpolate colors manually
+    for (int i = 0; i < tx_size; i++) {
+
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
+
+
+        double c = i / double(tx_size - 1);
+
+        double c_index = double(c * (num_colors - 1));
+
+        int intColor1 = std::floor(c_index);
+        int intColor2 = intColor1+1;
+
+        if (i == 0) {
+            vtkColor3ub color = colorSeries->GetColor(0);
+            r = color.GetRed();
+            g = color.GetGreen();
+            b = color.GetBlue();
+
+
+        } else if (i == tx_size-1) {
+            vtkColor3ub color = colorSeries->GetColor(num_colors-1);
+
+            r = color.GetRed();
+            g = color.GetGreen();
+            b = color.GetBlue();
+
+        } else {
+
+            double c_frac = c_index - intColor1;
+            double c_comp = 1 - c_frac;
+
+            vtkColor3ub color1 = colorSeries->GetColor(intColor1);
+            vtkColor3ub color2 = colorSeries->GetColor(intColor2);
+
+            r = (color1.GetRed() * c_comp + color2.GetRed() * c_frac);
+            g = (color1.GetGreen() * c_comp + color2.GetGreen() * c_frac);
+            b = (color1.GetBlue() * c_comp + color2.GetBlue() * c_frac);
+
+        }
+
+        c_texture[i][0] = r;
+        c_texture[i][1] = g;
+        c_texture[i][2] = b;
+
+    }
+
+    result_data->texture_data = std::move(c_texture);
+
+
+
+
 
     auto contour = vtkSmartPointer<vtkContourFilter>::New();
     contour->SetInputData(c2p_result);
@@ -180,6 +285,19 @@ Result* init_result(Configuration* configuration) {
 
     std::cout << std::endl;
 
+
+    // Probe filter will map the second variable onto the vertices of the countour
+
+    vtkSmartPointer<vtkProbeFilter> probe = vtkSmartPointer<vtkProbeFilter>::New();
+    probe->SetSourceData(c2p_result);  // The original dataset with the second cell array
+    probe->SetInputData(contour_result);
+    probe->Update();
+
+    auto probe_result = probe->GetOutput();
+
+
+
+
     // Get all polygons as "cells" from the contour result
     vtkSmartPointer<vtkCellArray> polys = contour_result->GetPolys();
 
@@ -188,6 +306,7 @@ Result* init_result(Configuration* configuration) {
 
 
     auto cnorms = contour_result->GetPointData()->GetNormals();
+
 
     // Get all polygon points from contour result
 
@@ -285,6 +404,27 @@ size_t get_verts_bytesize(Result* res) {
     return byte_count;
 }
 
+size_t get_texture_bytesize(Result* res) {
+    size_t s_result   = res->texture_size;
+    size_t byte_count = s_result * 3 * sizeof(uint8_t);
+
+    std::cout << "Texture Data Size: " << s_result << " [Bytes]: " << byte_count
+              << std::endl;
+
+    return byte_count;
+}
+
+size_t get_texcoord_bytesize(Result* res) {
+    size_t s_result   = res->num_verts;
+    size_t byte_count = s_result * sizeof(float);
+
+    std::cout << "Texture Coordinates: " << s_result << " [Bytes]: " << byte_count
+              << std::endl;
+
+    return byte_count;
+}
+
+
 char* get_vertdata(Result* res) {
     // size_t v_size = get_verts_bytesize(res);
 
@@ -315,6 +455,18 @@ char* get_polydata(Result* res) {
     char* ptr = reinterpret_cast<char*>(res->poly_data.data());
     return ptr;
 }
+
+char* get_texturedata(Result* res) {
+    char* ptr = reinterpret_cast<char*>(res->texture_data.data());
+    return ptr;
+}
+
+char* get_texcoorddata(Result* res) {
+    char* ptr = reinterpret_cast<char*>(res->texcoord_data.data());
+    return ptr;
+}
+
+
 
 void dump_to_obj(Result* res, const char* file) {
     // Write to .OBJ file for debugging/testomg

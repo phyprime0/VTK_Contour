@@ -12,6 +12,7 @@ auto main() -> int {
     set_max_refinement_level(config, 2);
     set_variable_name(config, "mag_vorticity");
     set_variable_value(config, 0.2);
+    set_texture_variable(config, "p");
 
     auto* rtest = init_result(config);
 
