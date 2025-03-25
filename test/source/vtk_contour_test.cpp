@@ -20,6 +20,7 @@ auto main() -> int {
 
     size_t test_vertsize = get_verts_bytesize(rtest);
     size_t test_polysize = get_polys_bytesize(rtest);
+    size_t test_texturesize = get_texture_bytesize(rtest);
 
     char* test_data = get_vertdata(rtest);
 
@@ -64,6 +65,27 @@ auto main() -> int {
         std::cout << "[" << p_data[i * 3] << "," << p_data[1 + i * 3] << ","
                   << p_data[2 + i * 3] << "]\n";
     }
+
+
+    char* test4_data = get_texcoorddata(rtest);
+
+    float*   t_data = reinterpret_cast<float*>(test4_data);
+    size_t num_t  = test_polysize / (sizeof(float) * 1);
+
+    std::cout << "---------------------\n";
+    std::cout << "Total Texture_Coordinates: [" << num_t
+              << "] \n Read (first 10) texture coordinates:\n";
+
+    for (size_t i = 0; i < 10; i++) {
+        std::cout << "[" << t_data[i] << "]\n";
+    }
+
+
+
+
+
+
+
 
 
     deinit_result(rtest);

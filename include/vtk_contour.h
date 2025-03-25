@@ -25,7 +25,7 @@ char* get_vertdata(Result*);
 char* get_polydata(Result*);
 char* get_normdata(Result*);
 char* get_texturedata(Result*);
-char* get_texcoord_data(Result*);
+char* get_texcoorddata(Result*);
 
 size_t get_polys_bytesize(Result*);
 size_t get_verts_bytesize(Result*);

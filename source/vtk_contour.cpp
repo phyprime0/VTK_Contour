@@ -21,6 +21,7 @@
 #include <vtkImageData.h>
 #include <vtkTexture.h>
 #include <vtkDataArray.h>
+#include <vtkPolyDataMapper.h>
 
 #include <vtkCellArray.h>
 #include <vtkCellData.h>
@@ -295,6 +296,35 @@ Result* init_result(Configuration* configuration) {
 
     auto probe_result = probe->GetOutput();
 
+    // vtkSmartPointer<vtkPolyDataMapper> probe = vtkSmartPointer<vtkPolyDataMapper>::New();
+    // probe->  // The original dataset with the second cell array
+    // probe->SetInputData(contour_result);
+    // probe->Update();
+
+
+
+
+
+    // Get all texture-variable values
+    auto tpoint_data = probe_result->GetPointData();
+
+
+    std::vector<float> poly_tdata(probe_result->GetNumberOfPoints());
+
+    double abs_trange = abs(txrange[1]) + abs(txrange[0]);
+
+
+    for (vtkIdType tid = 0; tid < probe_result->GetNumberOfPoints(); tid++) {
+        auto tx_array = tpoint_data->GetArray(tex_var.c_str());
+        auto tx_val = tx_array->GetComponent(tid, 0);
+
+        auto tx_scaled = (tx_val- txrange[0])/(abs_trange);
+
+        poly_tdata[tid] = tx_scaled;
+
+    }
+
+
 
 
 
@@ -361,6 +391,9 @@ Result* init_result(Configuration* configuration) {
     result_data->norm_data = std::move(poly_norms);
 
     result_data->poly_data = std::move(poly_indices);
+
+    result_data->texcoord_data = std::move(poly_tdata);
+
 
     // result_data->poly_data = poly_indices.data();
     // result_data->vert_data = poly_coords.data();
